@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package tde;
+
+service TDE {
+  // Encrypt a data chunk
+  rpc EncryptChunk (EncryptChunkRequest) returns (EncryptChunkResponse);
+
+  // Decrypt a data chunk
+  rpc DecryptChunk (DecryptChunkRequest) returns (DecryptChunkResponse);
+}
+
+// Request and Response messages for encryption
+message EncryptChunkRequest {
+  bytes chunk_data = 1; // Chunk data to be encrypted
+}
+
+message EncryptChunkResponse {
+  bytes encrypted_chunk = 1; // Encrypted chunk data
+}
+
+// Request and Response messages for decryption
+message DecryptChunkRequest {
+  bytes encrypted_chunk = 1; // Encrypted chunk data
+}
+
+message DecryptChunkResponse {
+  bytes chunk_data = 1; // Decrypted chunk data
+}
