@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package tde;
+
+message TDERequest {
+  string operation = 1;
+  bytes data = 2;
+}
+
+message TDEResponse {
+  bool success = 1;
+  string message = 2;
+  bytes data = 3;
+}
+
+service TDEService {
+  rpc CommunicateWithShard (TDERequest) returns (TDEResponse) {}
+}
