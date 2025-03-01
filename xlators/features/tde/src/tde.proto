@@ -2,17 +2,24 @@ syntax = "proto3";
 
 package tde;
 
+// The TDEService provides an RPC for data processing (e.g., encryption)
+service TDEService {
+  // CommunicateWithShard receives a TDERequest and returns a TDEResponse.
+  rpc CommunicateWithShard(TDERequest) returns (TDEResponse);
+}
+
+// The request message contains the operation type and the data to process.
 message TDERequest {
+  // e.g., "encrypt" or "decrypt"
   string operation = 1;
+  // Data to be processed (as a byte array)
   bytes data = 2;
 }
 
+// The response message returns whether the operation was successful,
+// an optional message, and the processed data.
 message TDEResponse {
   bool success = 1;
   string message = 2;
   bytes data = 3;
-}
-
-service TDEService {
-  rpc CommunicateWithShard (TDERequest) returns (TDEResponse) {}
 }

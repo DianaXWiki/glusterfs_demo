@@ -1,17 +1,12 @@
-xlator_LTLIBRARIES = shard.la
-xlatordir = $(libdir)/glusterfs/$(PACKAGE_VERSION)/xlator/features
+lib_LTLIBRARIES = libtde.la
 
-shard_la_LDFLAGS = -module $(GF_XLATOR_DEFAULT_LDFLAGS)
+libtde_la_SOURCES = tde.c tde.h
 
-shard_la_SOURCES = shard.c
+# Use GlusterFS-specific compiler and linker flags.
+libtde_la_CFLAGS = $(GF_CFLAGS)
+libtde_la_LDFLAGS = $(GF_LDFLAGS) -module -avoid-version
 
-shard_la_LIBADD = $(top_builddir)/libglusterfs/src/libglusterfs.la
-
-noinst_HEADERS = shard.h shard-mem-types.h shard-messages.h
-
-AM_CPPFLAGS = $(GF_CPPFLAGS) -I$(top_srcdir)/libglusterfs/src \
-	-I$(top_srcdir)/rpc/xdr/src -I$(top_builddir)/rpc/xdr/src
-
-AM_CFLAGS = -Wall $(GF_CFLAGS)
-
-CLEANFILES =
+# If using gRPC, include necessary flags (either via pkg-config or manually)
+# For example:
+# libtde_la_CFLAGS += $(GRPC_CFLAGS)
+# libtde_la_LDFLAGS += $(GRPC_LIBS)
