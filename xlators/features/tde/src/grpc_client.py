@@ -10,17 +10,6 @@ SOCKET_PATH = "/tmp/tde_shard_socket"
 channel = grpc.insecure_channel("localhost:50051")
 stub = shard_service_pb2_grpc.ShardServiceStub(channel)
 
-import grpc
-import socket
-import shard_service_pb2
-import shard_service_pb2_grpc
-
-# Unix socket path
-SOCKET_PATH = "/tmp/tde_shard_socket"
-
-# Connect to gRPC server
-channel = grpc.insecure_channel("localhost:50051")
-stub = shard_service_pb2_grpc.ShardServiceStub(channel)
 
 # Create a Unix socket listener
 def start_unix_socket_listener():
