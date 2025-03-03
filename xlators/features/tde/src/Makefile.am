@@ -9,3 +9,12 @@ AM_CPPFLAGS = $(GF_CPPFLAGS) -I$(top_srcdir)/libglusterfs/src            -I$(top
 AM_CFLAGS = -Wall -fno-strict-aliasing $(GF_CFLAGS)
 CLEANFILES =
 
+EXTRA_DIST = grpc_client.py grpc_server.py shard_service.proto
+
+install-data-local:
+	mkdir -p $(DESTDIR)@sysconfdir@/glusterfs/tde
+	install -m 0755 grpc_client.py $(DESTDIR)@sysconfdir@/glusterfs/tde/
+	install -m 0755 grpc_server.py $(DESTDIR)@sysconfdir@/glusterfs/tde/
+	install -m 0644 shard_service.proto $(DESTDIR)@sysconfdir@/glusterfs/tde/
+	install -m 0644 shard_service_pb2.py $(DESTDIR)@sysconfdir@/glusterfs/tde/
+	install -m 0644 shard_service_pb2_grpc.py $(DESTDIR)@sysconfdir@/glusterfs/tde/
