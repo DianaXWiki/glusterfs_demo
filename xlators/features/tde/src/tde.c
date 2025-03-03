@@ -31,6 +31,18 @@
       */
  } tde_priv_t;
  
+ struct volume_options tde_options[] = {
+    {
+        .key = {"tde.grpc-server"},
+        .type = GF_OPTION_TYPE_STR,
+        .default_value = "localhost:50051",
+        .description = "gRPC server address for TDE translator",
+        .op_version = {GD_OP_VERSION_3_7_0},
+        .flags = OPT_FLAG_SETTABLE | OPT_FLAG_DOC,
+    },
+    {.key = {NULL}},
+};
+
  /* ----------------------------------------------------------------------------
   * Placeholder for gRPC client call.
   *
