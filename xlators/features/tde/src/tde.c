@@ -217,25 +217,33 @@ int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_
 
 
 void send_shard_to_grpc(char *data, size_t size, off_t offset) {
-    pid_t pid = fork();
-    if (pid == 0) {  // Child process
-        char offset_str[32];
-        snprintf(offset_str, sizeof(offset_str), "%ld", offset);
-
-        char *args[] = {
-            "python3", 
-            "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
-            "send",
-            data,
-            offset_str,
-            NULL
-        };
-        execvp(args[0], args);
-        perror("execvp failed");  // If exec fails
-        exit(1);
-    } else if (pid < 0) {
-        perror("fork failed");  // Fork error
+    int sockfd;
+    struct sockaddr_un addr;
+    
+    // Open Unix domain socket
+    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        perror("socket error");
+        return;
     }
+
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, "/tmp/tde_shard_socket");
+
+    if (connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) == -1) {
+        perror("connect error");
+        close(sockfd);
+        return;
+    }
+
+    // Format the message
+    char message[1024];
+    snprintf(message, sizeof(message), "%ld|%zu|%s", offset, size, "shard_data_here");
+
+    // Send message
+    write(sockfd, message, strlen(message));
+    close(sockfd);
 }
 
 
@@ -244,9 +252,11 @@ static int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
     struct iovec *vector, int32_t count, off_t off,
     uint32_t flags, struct iobref *iobref, dict_t *xdata) {
 // Get the shard data
-char *shard_data = (char *)vector[0].iov_base;
-size_t shard_size = vector[0].iov_len;
-
+char *shard_data = (char *)vector[count].iov_base;
+size_t shard_size = vector[count].iov_len;
+print(shard_data)
+print(shard_size)
+print(off)
 // Send data to Python gRPC client
 send_shard_to_grpc(shard_data, shard_size, off);
 
