@@ -9,15 +9,16 @@
  */
 
 
-#ifndef __ TDE_H__
-#define __ TDE_H__
+#ifndef __ TDE_MEM_TYPES_H__
+#define __ TDE_MEM_TYPES_H__
 
-#include "tde-mem-types.h"
-#include "tde-messages.h"
-#include <glusterfs/glusterfs.h>
-#include <glusterfs/xlator.h>
-#include <glusterfs/defaults.h>
+#include <glusterfs/mem-types.h>
 
-#endif /* __TDE_H__ */
+enum gf_mdc_mem_types_ {
+    gf_tde_mt_ = gf_common_mt_end + 1,
+    gf_tde_mt_end
+};
+
+#endif /* __TDE_MEM_TYPES_H__ */
 
 

@@ -1,12 +1,11 @@
-lib_LTLIBRARIES = libtde.la
 
-libtde_la_SOURCES = tde.c tde.h
+xlator_LTLIBRARIES = tde.la
+xlatordir = $(libdir)/glusterfs/$(PACKAGE_VERSION)/xlator/tde
+tde_la_LDFLAGS = -module $(GF_XLATOR_DEFAULT_LDFLAGS)
+tde_la_SOURCES = tde.c
+tde_la_LIBADD = $(top_builddir)/libglusterfs/src/libglusterfs.la
+noinst_HEADERS = tde.h tde-mem-types.h tde-messages.h
+AM_CPPFLAGS = $(GF_CPPFLAGS) -I$(top_srcdir)/libglusterfs/src            -I$(top_srcdir)/rpc/xdr/src -I$(top_builddir)/rpc/xdr/src
+AM_CFLAGS = -Wall -fno-strict-aliasing $(GF_CFLAGS)
+CLEANFILES =
 
-# Use GlusterFS-specific compiler and linker flags.
-libtde_la_CFLAGS = $(GF_CFLAGS)
-libtde_la_LDFLAGS = $(GF_LDFLAGS) -module -avoid-version
-
-# If using gRPC, include necessary flags (either via pkg-config or manually)
-# For example:
-# libtde_la_CFLAGS += $(GRPC_CFLAGS)
-# libtde_la_LDFLAGS += $(GRPC_LIBS)

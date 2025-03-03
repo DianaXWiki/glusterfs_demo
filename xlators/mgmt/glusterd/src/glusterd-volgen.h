@@ -126,6 +126,7 @@ typedef enum {
     GF_XLATOR_IO_STATS,
     GF_XLATOR_BD,
     GF_XLATOR_SERVER,
+    GF_XLATOR_TDE,
     GF_XLATOR_NONE,
 } glusterd_server_xlator_t;
 
