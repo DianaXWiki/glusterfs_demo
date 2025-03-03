@@ -1511,17 +1511,17 @@ static int32_t tde_dump_metrics(xlator_t *this, int fd)
 }
 
 struct volume_options tde_options[] = {
-    { .key  = {""},
-      .type = GF_OPTION_TYPE_BOOL,
-      .default_value = "",
-      .op_version = {GD_OP_VERSION_6_0},
-      .flags = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
-      .tags = {""},
-      .description = "",
-      .category = GF_EXPERIMENTAL,
+    {
+        .key = "enable-tde",
+        .type = GF_OPTION_TYPE_BOOL,
+        .default_value = "false",
+        .op_version = GD_OP_VERSION_6_0,
+        .flags = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
+        .tags = "encryption",
+        .description = "Enable Transparent Data Encryption (TDE)",
+        .category = GF_EXPERIMENTAL,
     },
-    { .key = {NULL} },
-
+    { .key = NULL } // End marker
 };
 
 xlator_api_t xlator_api = {
@@ -1531,12 +1531,13 @@ xlator_api_t xlator_api = {
     .reconfigure = tde_reconfigure,
     .mem_acct_init = tde_mem_acct_init,
     .dump_metrics = tde_dump_metrics,
-    .op_version = {GD_OP_VERSION_6_0},
+    .op_version = GD_OP_VERSION_6_0, // Remove `{}` around this
     .dumpops = &tde_dumpops,
     .fops = &tde_fops,
-    .cbks = &@FOP_PREFIX @_cbks,
+    .cbks = &tde_cbks, // Assuming `tde_cbks` is properly defined
     .options = tde_options,
     .identifier = "tde",
     .category = GF_EXPERIMENTAL,
 };
+
 
