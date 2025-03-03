@@ -217,49 +217,32 @@ int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_
 
 
 
-void send_shard_to_grpc(char *data, size_t size, off_t offset) {
-    grpc::ClientContext context;
-    ShardRequest request;
-    ShardResponse response;
-
-    // Set request data
-    request.set_data(std::string(data, size));
-    request.set_offset(offset);
-
-    // Create gRPC client
-    std::unique_ptr<ShardService::Stub> stub_ = 
-        ShardService::NewStub(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
-
-    // Call the gRPC service
-    grpc::Status status = stub_->SendShard(&context, request, &response);
-    
-    if (!status.ok()) {
-        fprintf(stderr, "gRPC Error: %s\n", status.error_message().c_str());
-    } else {
-        printf("Shard sent successfully! Offset: %ld\n", offset);
-    }
+void send_shard_to_grpc(const char *data, size_t size, off_t offset) {
+    char command[1024];
+    snprintf(command, sizeof(command), 
+             "python3 /opt/glusterfs/xlators/features/tde/src/grpc_client.py send %ld '%s'", 
+             offset, data);
+    system(command);
 }
 
-#include <grpc/grpc.h>
-#include <grpcpp/create_channel.h>
-#include "shard_service.grpc.pb.h"
+
 
 static int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
-                          struct iovec *vector, int32_t count, off_t off,
-                          uint32_t flags, struct iobref *iobref, dict_t *xdata) {
-    
-    // Get the shard data (iovec contains the data buffers)
-    char *shard_data = (char *)vector[0].iov_base;
-    size_t shard_size = vector[0].iov_len;
+    struct iovec *vector, int32_t count, off_t off,
+    uint32_t flags, struct iobref *iobref, dict_t *xdata) {
+// Get the shard data
+char *shard_data = (char *)vector[0].iov_base;
+size_t shard_size = vector[0].iov_len;
 
-    // Send data to Python gRPC client
-    send_shard_to_grpc(shard_data, shard_size, off);
+// Send data to Python gRPC client
+send_shard_to_grpc(shard_data, shard_size, off);
 
-    // Continue the normal write operation
-    STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
-               FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
-    return 0;
+// Continue the normal write operation
+STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
+FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
+return 0;
 }
+
 
 
 int32_t tde_readv_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
@@ -273,19 +256,32 @@ int32_t tde_readv_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t
     return 0;
 }
 
+void fetch_shard_from_grpc(off_t offset, char *buffer, size_t buffer_size) {
+    char command[1024];
+    snprintf(command, sizeof(command),
+             "python3 /opt/glusterfs/xlators/features/tde/src/grpc_client.py get %ld > /tmp/shard_data",
+             offset);
+    system(command);
 
-        int32_t tde_readv(call_frame_t *frame, xlator_t *this, fd_t * fd,
-	size_t size,
-	off_t offset,
-	uint32_t flags,
-	dict_t * xdata)
-{
-    STACK_WIND(frame, tde_readv_cbk, FIRST_CHILD(this),
-               FIRST_CHILD(this)->fops->readv, fd, size, offset, flags, xdata);
-    return 0;
-err:
-    STACK_UNWIND_STRICT(readv, frame, -1, errno, NULL, -1, NULL, NULL, NULL);
-    return 0;
+    FILE *file = fopen("/tmp/shard_data", "rb");
+    if (file) {
+        fread(buffer, 1, buffer_size, file);
+        fclose(file);
+    }
+}
+
+
+static int32_t tde_readv(call_frame_t *frame, xlator_t *this, fd_t *fd,
+    size_t size, off_t off, uint32_t flags, dict_t *xdata) {
+char shard_data[4096];
+
+// Fetch shard from Python gRPC client
+fetch_shard_from_grpc(off, shard_data, sizeof(shard_data));
+
+// Continue the normal read operation
+STACK_WIND(frame, tde_readv_cbk, FIRST_CHILD(this),
+FIRST_CHILD(this)->fops->readv, fd, size, off, flags, xdata);
+return 0;
 }
 
 
