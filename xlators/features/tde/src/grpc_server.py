@@ -16,6 +16,10 @@ class ShardServiceServicer(shard_service_pb2_grpc.ShardServiceServicer):
 
         return shard_service_pb2.ShardResponse(status="OK")
 
+    def SendShardInfo(self, request, context):  # This method was missing
+        print(f"Received shard info: Path={request.shard_path}, Index={request.shard_index}, Size={request.shard_size}")
+        return shard_service_pb2.ShardResponse(status="Received")
+
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     shard_service_pb2_grpc.add_ShardServiceServicer_to_server(ShardServiceServicer(), server)

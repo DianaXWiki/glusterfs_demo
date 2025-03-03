@@ -1,12 +1,13 @@
 syntax = "proto3";
 
 service ShardService {
-    rpc SendShard (ShardRequest) returns (ShardResponse);
+    rpc SendShardInfo(ShardRequest) returns (ShardResponse);
 }
 
 message ShardRequest {
-    bytes data = 1;
-    int64 offset = 2;
+    string shard_path = 1;
+    int32 shard_index = 2;
+    int32 shard_size = 3;
 }
 
 message ShardResponse {
