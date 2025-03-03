@@ -1505,12 +1505,24 @@ struct xlator_dumpops dumpops = {
         .history              = tde_history,
 };
 
+
 void tde_init(xlator_t *this) {
     printf("Initializing TDE Translator...\n");
 
-    // Call Python script to start the gRPC client if needed
-    system("python3 /opt/glusterfs/xlators/features/tde/src/grpc_client.py start &");
+    // Fork a new process
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Child process: Execute the Python script
+        char *args[] = {"python3", "/opt/glusterfs/xlators/features/tde/src/grpc_client.py", "start", NULL};
+        execvp(args[0], args);
+        perror("execvp failed");  // If exec fails
+        exit(1);
+    } else if (pid < 0) {
+        // Fork failed
+        perror("fork failed");
+    }
 }
+
 
 static void tde_fini(xlator_t *this)
 {
@@ -1554,7 +1566,7 @@ struct volume_options tde_options[] = {
     { .key = NULL } // End marker
 };
 
-xlator_api_t xlator_api = {{
+xlator_api_t xlator_api = {
     .init = tde_init,
     .fini = tde_fini,
     .notify = tde_notify,
@@ -1568,6 +1580,6 @@ xlator_api_t xlator_api = {{
     .options = tde_options,
     .identifier = "tde",
     .category = GF_EXPERIMENTAL,
-}};
+};
 
 
