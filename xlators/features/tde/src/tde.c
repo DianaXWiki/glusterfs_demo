@@ -216,13 +216,26 @@ int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_
 }
 
 
+void send_shard_to_grpc(char *data, size_t size, off_t offset) {
+    pid_t pid = fork();
+    if (pid == 0) {  // Child process
+        char offset_str[32];
+        snprintf(offset_str, sizeof(offset_str), "%ld", offset);
 
-void send_shard_to_grpc(const char *data, size_t size, off_t offset) {
-    char command[1024];
-    snprintf(command, sizeof(command), 
-             "python3 /opt/glusterfs/xlators/features/tde/src/grpc_client.py send %ld '%s'", 
-             offset, data);
-    system(command);
+        char *args[] = {
+            "python3", 
+            "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
+            "send",
+            data,
+            offset_str,
+            NULL
+        };
+        execvp(args[0], args);
+        perror("execvp failed");  // If exec fails
+        exit(1);
+    } else if (pid < 0) {
+        perror("fork failed");  // Fork error
+    }
 }
 
 
@@ -256,17 +269,24 @@ int32_t tde_readv_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t
     return 0;
 }
 
-void fetch_shard_from_grpc(off_t offset, char *buffer, size_t buffer_size) {
-    char command[1024];
-    snprintf(command, sizeof(command),
-             "python3 /opt/glusterfs/xlators/features/tde/src/grpc_client.py get %ld > /tmp/shard_data",
-             offset);
-    system(command);
+void fetch_shard_from_grpc(off_t offset) {
+    pid_t pid = fork();
+    if (pid == 0) {  // Child process
+        char offset_str[32];
+        snprintf(offset_str, sizeof(offset_str), "%ld", offset);
 
-    FILE *file = fopen("/tmp/shard_data", "rb");
-    if (file) {
-        fread(buffer, 1, buffer_size, file);
-        fclose(file);
+        char *args[] = {
+            "python3", 
+            "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
+            "fetch",
+            offset_str,
+            NULL
+        };
+        execvp(args[0], args);
+        perror("execvp failed");  // If exec fails
+        exit(1);
+    } else if (pid < 0) {
+        perror("fork failed");  // Fork error
     }
 }
 
