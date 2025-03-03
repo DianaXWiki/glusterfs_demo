@@ -2,7 +2,7 @@ import grpc
 import socket
 import shard_service_pb2
 import shard_service_pb2_grpc
-
+import os
 # Unix socket path
 SOCKET_PATH = "/tmp/tde_shard_socket"
 
