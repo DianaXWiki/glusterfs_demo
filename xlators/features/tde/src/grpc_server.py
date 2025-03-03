@@ -4,8 +4,16 @@ import shard_service_pb2
 import shard_service_pb2_grpc
 
 class ShardServiceServicer(shard_service_pb2_grpc.ShardServiceServicer):
-    def SendShardInfo(self, request, context):
-        print(f"Received shard info: Path={request.shard_path}, Index={request.shard_index}, Size={request.shard_size}")
+    def SendShard(self, request, context):
+        shard_data = request.data
+        offset = request.offset
+
+        print(f"Received shard at offset {offset}, size: {len(shard_data)} bytes")
+
+        # Save shard data to a file (optional)
+        with open(f"shard_{offset}.bin", "wb") as f:
+            f.write(shard_data)
+
         return shard_service_pb2.ShardResponse(status="OK")
 
 def serve():
@@ -13,7 +21,7 @@ def serve():
     shard_service_pb2_grpc.add_ShardServiceServicer_to_server(ShardServiceServicer(), server)
     server.add_insecure_port("[::]:50051")
     server.start()
-    print("Shard gRPC server running on port 50051...")
+    print("Shard gRPC Server is running...")
     server.wait_for_termination()
 
 if __name__ == "__main__":

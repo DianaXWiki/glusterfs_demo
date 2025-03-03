@@ -216,70 +216,49 @@ int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_
 }
 
 
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-// Path to the Unix socket
-#define SOCKET_PATH "/tmp/tde_shard_socket"
+void send_shard_to_grpc(char *data, size_t size, off_t offset) {
+    grpc::ClientContext context;
+    ShardRequest request;
+    ShardResponse response;
 
-// Function to send shard data to Python
-void send_shard_info_to_python(const char *shard_path, int shard_index, int shard_size) {
-    int sock;
-    struct sockaddr_un addr;
-    char message[256];
+    // Set request data
+    request.set_data(std::string(data, size));
+    request.set_offset(offset);
 
-    // Create the socket
-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sock == -1) {
-        perror("Socket creation failed");
-        return;
+    // Create gRPC client
+    std::unique_ptr<ShardService::Stub> stub_ = 
+        ShardService::NewStub(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
+
+    // Call the gRPC service
+    grpc::Status status = stub_->SendShard(&context, request, &response);
+    
+    if (!status.ok()) {
+        fprintf(stderr, "gRPC Error: %s\n", status.error_message().c_str());
+    } else {
+        printf("Shard sent successfully! Offset: %ld\n", offset);
     }
-
-    memset(&addr, 0, sizeof(struct sockaddr_un));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
-
-    // Connect to Python server
-    if (connect(sock, (struct sockaddr*)&addr, sizeof(struct sockaddr_un)) == -1) {
-        perror("Socket connection failed");
-        close(sock);
-        return;
-    }
-
-    // Format message
-    snprintf(message, sizeof(message), "%s|%d|%d", shard_path, shard_index, shard_size);
-
-    // Send the message
-    write(sock, message, strlen(message));
-
-    close(sock);
 }
 
-// Modified `tde_writev()`
+#include <grpc/grpc.h>
+#include <grpcpp/create_channel.h>
+#include "shard_service.grpc.pb.h"
+
 static int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
                           struct iovec *vector, int32_t count, off_t off,
                           uint32_t flags, struct iobref *iobref, dict_t *xdata) {
+    
+    // Get the shard data (iovec contains the data buffers)
+    char *shard_data = (char *)vector[0].iov_base;
+    size_t shard_size = vector[0].iov_len;
 
-    const char *shard_path = NULL;
-    int shard_index = -1;
-    int shard_size = 0;
+    // Send data to Python gRPC client
+    send_shard_to_grpc(shard_data, shard_size, off);
 
-    if (xdata) {
-        dict_get_str(xdata, "shard-path", &shard_path);
-        dict_get_int32(xdata, "shard-index", &shard_index);
-        dict_get_int32(xdata, "shard-size", &shard_size);
-    }
-
-    if (shard_path && shard_index >= 0 && shard_size > 0) {
-        send_shard_info_to_python(shard_path, shard_index, shard_size);
-    }
-
-    return STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
-                      FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
+    // Continue the normal write operation
+    STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
+               FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
+    return 0;
 }
 
 
