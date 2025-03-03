@@ -296,7 +296,7 @@ static int32_t tde_readv(call_frame_t *frame, xlator_t *this, fd_t *fd,
 char shard_data[4096];
 
 // Fetch shard from Python gRPC client
-fetch_shard_from_grpc(off, shard_data, sizeof(shard_data));
+fetch_shard_from_grpc(off);
 
 // Continue the normal read operation
 STACK_WIND(frame, tde_readv_cbk, FIRST_CHILD(this),
