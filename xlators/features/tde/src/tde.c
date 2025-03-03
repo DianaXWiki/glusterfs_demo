@@ -1380,11 +1380,14 @@ int32_t tde_fdctx(xlator_t * this,
 }
 
 
-int32_t tde_priv_to_dict(xlator_t * this,
-	dict_t * dict)
-{
+static int32_t tde_priv_to_dict(xlator_t *this, dict_t *dict, char *str) {
+    // Ensure `str` is used properly
+    if (str)
+        snprintf(str, 256, "TDE Translator");
+    
     return 0;
 }
+
 
 
 int32_t tde_inode_to_dict(xlator_t * this,
@@ -1502,9 +1505,11 @@ struct xlator_dumpops dumpops = {
         .history              = tde_history,
 };
 
-static int32_t tde_init(xlator_t *this) {
-    grpc_client = new ShardClient(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
-    return 0;
+void tde_init(xlator_t *this) {
+    printf("Initializing TDE Translator...\n");
+
+    // Call Python script to start the gRPC client if needed
+    system("python3 /opt/glusterfs/xlators/features/tde/src/grpc_client.py start &");
 }
 
 static void tde_fini(xlator_t *this)
@@ -1549,7 +1554,7 @@ struct volume_options tde_options[] = {
     { .key = NULL } // End marker
 };
 
-xlator_api_t xlator_api = {
+xlator_api_t xlator_api = {{
     .init = tde_init,
     .fini = tde_fini,
     .notify = tde_notify,
@@ -1563,6 +1568,6 @@ xlator_api_t xlator_api = {
     .options = tde_options,
     .identifier = "tde",
     .category = GF_EXPERIMENTAL,
-};
+}};
 
 
