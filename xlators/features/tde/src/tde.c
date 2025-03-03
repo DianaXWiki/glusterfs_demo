@@ -216,20 +216,70 @@ int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_
 }
 
 
-        int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t * fd,
-	struct iovec * vector,
-	int32_t count,
-	off_t off,
-	uint32_t flags,
-	struct iobref * iobref,
-	dict_t * xdata)
-{
-    STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
-               FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
-    return 0;
-err:
-    STACK_UNWIND_STRICT(writev, frame, -1, errno, NULL, NULL, NULL);
-    return 0;
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Path to the Unix socket
+#define SOCKET_PATH "/tmp/tde_shard_socket"
+
+// Function to send shard data to Python
+void send_shard_info_to_python(const char *shard_path, int shard_index, int shard_size) {
+    int sock;
+    struct sockaddr_un addr;
+    char message[256];
+
+    // Create the socket
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock == -1) {
+        perror("Socket creation failed");
+        return;
+    }
+
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
+
+    // Connect to Python server
+    if (connect(sock, (struct sockaddr*)&addr, sizeof(struct sockaddr_un)) == -1) {
+        perror("Socket connection failed");
+        close(sock);
+        return;
+    }
+
+    // Format message
+    snprintf(message, sizeof(message), "%s|%d|%d", shard_path, shard_index, shard_size);
+
+    // Send the message
+    write(sock, message, strlen(message));
+
+    close(sock);
+}
+
+// Modified `tde_writev()`
+static int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
+                          struct iovec *vector, int32_t count, off_t off,
+                          uint32_t flags, struct iobref *iobref, dict_t *xdata) {
+
+    const char *shard_path = NULL;
+    int shard_index = -1;
+    int shard_size = 0;
+
+    if (xdata) {
+        dict_get_str(xdata, "shard-path", &shard_path);
+        dict_get_int32(xdata, "shard-index", &shard_index);
+        dict_get_int32(xdata, "shard-size", &shard_size);
+    }
+
+    if (shard_path && shard_index >= 0 && shard_size > 0) {
+        send_shard_info_to_python(shard_path, shard_index, shard_size);
+    }
+
+    return STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
+                      FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
 }
 
 
@@ -1477,8 +1527,8 @@ struct xlator_dumpops dumpops = {
         .history              = tde_history,
 };
 
-static int32_t tde_init(xlator_t *this)
-{
+static int32_t tde_init(xlator_t *this) {
+    grpc_client = new ShardClient(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
     return 0;
 }
 
@@ -1532,9 +1582,9 @@ xlator_api_t xlator_api = {
     .mem_acct_init = tde_mem_acct_init,
     .dump_metrics = tde_dump_metrics,
     .op_version = GD_OP_VERSION_6_0, // Remove `{}` around this
-    .dumpops = &tde_dumpops,
-    .fops = &tde_fops,
-    .cbks = &tde_cbks, // Assuming `tde_cbks` is properly defined
+    //.dumpops = &tde_dumpops,
+    //.fops = &tde_fops,
+    //.cbks = &tde_cbks, // Assuming `tde_cbks` is properly defined
     .options = tde_options,
     .identifier = "tde",
     .category = GF_EXPERIMENTAL,
