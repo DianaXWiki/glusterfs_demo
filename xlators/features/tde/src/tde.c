@@ -252,11 +252,13 @@ static int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
     struct iovec *vector, int32_t count, off_t off,
     uint32_t flags, struct iobref *iobref, dict_t *xdata) {
 // Get the shard data
+
+printf("TDE Translator: Intercepted write at offset %ld, size %d\n", off, count);
 char *shard_data = (char *)vector[count].iov_base;
 size_t shard_size = vector[count].iov_len;
-print(shard_data)
-print(shard_size)
-print(off)
+printf("%d",shard_data)
+printf("%d",shard_size)
+printf("%d",off)
 // Send data to Python gRPC client
 send_shard_to_grpc(shard_data, shard_size, off);
 
