@@ -4294,7 +4294,7 @@ client_graph_builder(volgen_graph_t *graph, glusterd_volinfo_t *volinfo,
             goto out;
         }
     }
-    ret = dict_get_str_boolean(set_dict, "features/tde", _gf_false);
+    ret = dict_get_str_boolean(set_dict, "features.tde", _gf_false);
     if (ret == -1)
         goto out;
 
