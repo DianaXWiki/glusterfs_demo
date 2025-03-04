@@ -9,7 +9,15 @@
  */
 
 
-#include "tde.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
+ #include <errno.h>
+ #include <string.h>
+ #include <sys/wait.h>      /* For waitpid() */
+ #include <glusterfs/logging.h>
+ #include <glusterfs/xlator.h>
+ #include "tde.h"
 
 
 int32_t tde_fgetxattr_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
@@ -1543,11 +1551,13 @@ struct xlator_dumpops dumpops = {
 int32_t tde_init(xlator_t *this)
 {
     /* Use gf_msg to log (if available) instead of printf */
-    gf_msg(0, "%s: Initializing TDE Translator...", this->name);
+    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+        "%s: Initializing TDE Translator...", this->name);
 
     pid_t pid = fork();
     if (pid < 0) {
-        gf_msg(0, "%s: fork failed: %s", this->name, strerror(errno));
+        gf_msg(this->name, GF_LOG_ERROR, errno, 0,
+            "%s: fork failed: %s", this->name, strerror(errno));
         return -errno;
     } else if (pid == 0) {
         /* In first child: perform a double-fork to detach from parent */
@@ -1612,30 +1622,54 @@ static struct volume_options tde_options[] = {
     {
         .key            = "features.tde",
         .type           = GF_OPTION_TYPE_BOOL,
-        .default_value  = "false",  /* default off; set true to enable */
+        .default_value  = "false", /* Default off; set to "true" to enable */
         .op_version     = GD_OP_VERSION_6_0,
         .flags          = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
         .tags           = "features",
         .description    = "Enable Transparent Data Encryption (TDE) for file I/O",
     },
-    { .key = NULL }  /* end marker */
+    { .key = NULL }  /* End marker */
 };
 
 
+struct xlator_fops tde_fops = {
+    .lookup         = tde_lookup,
+    .open           = tde_open,
+    .opendir        = tde_opendir,
+    .readv          = tde_readv,
+    .writev         = tde_writev,
+    .truncate       = tde_truncate,
+    .ftruncate      = tde_ftruncate,
+    .getxattr       = tde_getxattr,
+    .fgetxattr      = tde_fgetxattr,
+    .setxattr       = tde_setxattr,
+    .fsetxattr      = tde_fsetxattr,
+    .removexattr    = tde_removexattr,
+    .fremovexattr   = tde_fremovexattr,
+    .stat           = tde_stat,
+    .fstat          = tde_fstat,
+    .copy_file_range= tde_copy_file_range,
+    /* Add additional FOP function pointers as needed */
+};
+struct xlator_cbks tde_cbks = {
+    .forget         = tde_forget,     /* e.g. a function that handles forgetting an inode */
+    .release        = tde_release,    /* e.g. a function to handle file descriptor release */
+    .releasedir     = tde_releasedir, /* e.g. a function to handle directory release */
+    /* Add additional callback pointers as needed */
+};
+
+/* API registration */
 xlator_api_t xlator_api = {
-    .init = tde_init,
-    .fini = tde_fini,
-    .notify = tde_notify,
-    .reconfigure = tde_reconfigure,
-    .mem_acct_init = tde_mem_acct_init,
-    .dump_metrics = tde_dump_metrics,
-    .op_version = GD_OP_VERSION_6_0, // Remove `{}` around this
-    //.dumpops = &tde_dumpops,
-    //.fops = &tde_fops,
-    //.cbks = &tde_cbks, // Assuming `tde_cbks` is properly defined
-    .options = tde_options,
-    .identifier = "tde",
-    .category = GF_EXPERIMENTAL,
+    .init          = tde_init,            /* Now returns int32_t */
+    .fini          = tde_fini,            /* Your fini function (void) */
+    .notify        = tde_notify,          /* Should return int32_t */
+    .reconfigure   = tde_reconfigure,     /* Should return int32_t */
+    .mem_acct_init = tde_mem_acct_init,   /* Should return int32_t */
+    .dump_metrics  = tde_dump_metrics,    /* Should return int32_t */
+    .op_version    = GD_OP_VERSION_6_0,
+    .fops          = &tde_fops,
+    .cbks          = &tde_cbks,
+    .options       = tde_options,
+    .identifier    = "tde",
+    .category      = GF_EXPERIMENTAL,
 };
-
-
