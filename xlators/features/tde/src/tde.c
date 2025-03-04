@@ -1631,13 +1631,13 @@ static struct volume_options tde_options[] = {
     {
         .key            = "features.tde",
         .type           = GF_OPTION_TYPE_BOOL,
-        .default_value  = "false", /* Default off; set to "true" to enable */
+        .default_value  = "false",
         .op_version     = GD_OP_VERSION_6_0,
         .flags          = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
         .tags           = "features",
         .description    = "Enable Transparent Data Encryption (TDE) for file I/O",
     },
-    { .key = NULL }  /* End marker */
+    { .key = NULL }
 };
 
 
@@ -1667,18 +1667,17 @@ struct xlator_cbks tde_cbks = {
     /* Add additional callback pointers as needed */
 };
 
-/* API registration */
 xlator_api_t xlator_api = {
-    .init          = tde_init,            /* Now returns int32_t */
-    .fini          = tde_fini,            /* Your fini function (void) */
-    .notify        = tde_notify,          /* Should return int32_t */
-    .reconfigure   = tde_reconfigure,     /* Should return int32_t */
-    .mem_acct_init = tde_mem_acct_init,   /* Should return int32_t */
-    .dump_metrics  = tde_dump_metrics,    /* Should return int32_t */
+    .init          = tde_init,
+    .fini          = tde_fini,
+    .notify        = tde_notify,
+    .reconfigure   = tde_reconfigure,
+    .mem_acct_init = tde_mem_acct_init,
+    .dump_metrics  = tde_dump_metrics,
     .op_version    = GD_OP_VERSION_6_0,
     .fops          = &tde_fops,
     .cbks          = &tde_cbks,
-    .options       = tde_options,
+    .options       = tde_options,  /* This is critical! */
     .identifier    = "tde",
     .category      = GF_EXPERIMENTAL,
 };
