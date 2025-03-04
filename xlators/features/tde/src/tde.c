@@ -206,17 +206,17 @@ err:
 }
 
 
-static int32_t
-tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this,
-               int32_t op_ret, int32_t op_errno,
-               struct iatt *prebuf, struct iatt *postbuf, dict_t *xdata)
+static int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this,
+    int32_t op_ret, int32_t op_errno,
+    struct iatt *prebuf, struct iatt *postbuf,
+    dict_t *xdata)
 {
-    gf_msg(this->name, GF_LOG_DEBUG, 0,
-           "TDE Translator: writev callback reached: op_ret=%d, op_errno=%d",
-           op_ret, op_errno);
+    gf_msg(0, "%s: writev callback reached: op_ret=%d, op_errno=%d",
+    this->name, op_ret, op_errno);
     STACK_UNWIND_STRICT(writev, frame, op_ret, op_errno, prebuf, postbuf, xdata);
     return 0;
 }
+
 
 void send_shard_to_grpc(char *data, size_t size, off_t offset) {
     int sockfd;
@@ -249,28 +249,24 @@ void send_shard_to_grpc(char *data, size_t size, off_t offset) {
 }
 
 
-int32_t
-tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
-           struct iovec *vector, int32_t count, off_t off,
-           uint32_t flags, struct iobref *iobref, dict_t *xdata)
-{
-    gf_msg(this->name, GF_LOG_DEBUG, 0,
-           "TDE Translator: writev intercepted at offset %ld, count=%d",
-           off, count);
-
-    /* Example: if you want to send shard data for writes, then for demonstration:
-       Assume the last iovec contains shard data */
+/* Revised writev FOP */
+int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
+    struct iovec *vector, int32_t count, off_t off,
+    uint32_t flags, struct iobref *iobref, dict_t *xdata)
+    {
+    gf_msg(0, "%s: writev intercepted at offset %ld, count=%d",
+    this->name, off, count);
+    
     if (count > 0) {
-        char *shard_data = (char *)vector[count - 1].iov_base;
-        size_t shard_size = vector[count - 1].iov_len;
-        gf_msg(this->name, GF_LOG_DEBUG, 0,
-               "TDE Translator: Sending shard data (size %zu) via gRPC", shard_size);
-        send_shard_to_grpc(shard_data, shard_size, off);
+    char *shard_data = (char *)vector[count - 1].iov_base;
+    size_t shard_size = vector[count - 1].iov_len;
+    gf_msg(0, "%s: Sending shard data (size %zu) via gRPC",
+    this->name, shard_size);
+    send_shard_to_grpc(shard_data, shard_size, off);
     }
-
-    /* Continue the stack processing with our callback */
+    
     STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
-               FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
+    FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
     return 0;
 }
 
@@ -281,9 +277,8 @@ tde_readv_cbk(call_frame_t *frame, void *cookie, xlator_t *this,
               struct iovec *vector, int32_t count,
               struct iatt *stbuf, struct iobref *iobref, dict_t *xdata)
 {
-    gf_msg(this->name, GF_LOG_DEBUG, 0,
-           "TDE Translator: readv callback reached: op_ret=%d, op_errno=%d",
-           op_ret, op_errno);
+    gf_msg(0, "%s: readv callback reached: op_ret=%d, op_errno=%d",
+        this->name, op_ret, op_errno);
     STACK_UNWIND_STRICT(readv, frame, op_ret, op_errno, vector, count, stbuf, iobref, xdata);
     return 0;
 }
@@ -314,12 +309,9 @@ int32_t
 tde_readv(call_frame_t *frame, xlator_t *this, fd_t *fd, size_t size,
           off_t off, uint32_t flags, dict_t *xdata)
 {
-    gf_msg(this->name, GF_LOG_DEBUG, 0,
-           "TDE Translator: readv intercepted at offset %ld, size=%zu",
-           off, size);
 
-    /* If your logic requires fetching shard data for reads, call it here.
-       For example, fetch_shard_from_grpc(off) might spawn a Python process. */
+    gf_msg(this->name, GF_LOG_DEBUG, 0, "%s: Sending shard data (size %zu) via gRPC",
+    off, size);
     fetch_shard_from_grpc(off);
 
     STACK_WIND(frame, tde_readv_cbk, FIRST_CHILD(this),
@@ -1548,23 +1540,45 @@ struct xlator_dumpops dumpops = {
 };
 
 
-void tde_init(xlator_t *this) {
-    printf("Initializing TDE Translator...\n");
+int32_t tde_init(xlator_t *this)
+{
+    /* Use gf_msg to log (if available) instead of printf */
+    gf_msg(0, "%s: Initializing TDE Translator...", this->name);
 
-    // Fork a new process
     pid_t pid = fork();
-    if (pid == 0) {
-        // Child process: Execute the Python script
-        char *args[] = {"python3", "/opt/glusterfs/xlators/features/tde/src/grpc_client.py", "start", NULL};
+    if (pid < 0) {
+        gf_msg(0, "%s: fork failed: %s", this->name, strerror(errno));
+        return -errno;
+    } else if (pid == 0) {
+        /* In first child: perform a double-fork to detach from parent */
+        pid_t pid2 = fork();
+        if (pid2 < 0) {
+            perror("Second fork failed");
+            _exit(1);
+        } else if (pid2 > 0) {
+            /* First child exits so that the grandchild is re-parented to init */
+            _exit(0);
+        }
+        /* In grandchild: detach from controlling terminal */
+        if (setsid() < 0) {
+            perror("setsid failed");
+            _exit(1);
+        }
+        /* Execute the Python script */
+        char *args[] = {"python3",
+                        "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
+                        "start",
+                        NULL};
         execvp(args[0], args);
-        perror("execvp failed");  // If exec fails
-        exit(1);
-    } else if (pid < 0) {
-        // Fork failed
-        perror("fork failed");
+        /* If execvp returns, it failed */
+        perror("execvp failed");
+        _exit(1);
     }
+    /* Parent: wait for the first child to prevent zombie */
+    int status = 0;
+    waitpid(pid, &status, 0);
+    return 0;
 }
-
 
 static void tde_fini(xlator_t *this)
 {
@@ -1594,18 +1608,17 @@ static int32_t tde_dump_metrics(xlator_t *this, int fd)
     return 0;
 }
 
-struct volume_options tde_options[] = {
+static struct volume_options tde_options[] = {
     {
-        .key = "features.tde",
-        .type = GF_OPTION_TYPE_BOOL,
-        .default_value = "false",
-        .op_version = GD_OP_VERSION_6_0,
-        .flags = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
-        .tags = "features",
-        .description = "Enable Transparent Data Encryption (TDE) for write operations",
-        .category = GF_CLIENT | GF_METADATA,
+        .key            = "features.tde",
+        .type           = GF_OPTION_TYPE_BOOL,
+        .default_value  = "false",  /* default off; set true to enable */
+        .op_version     = GD_OP_VERSION_6_0,
+        .flags          = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
+        .tags           = "features",
+        .description    = "Enable Transparent Data Encryption (TDE) for file I/O",
     },
-    { .key = NULL } // End marker
+    { .key = NULL }  /* end marker */
 };
 
 
