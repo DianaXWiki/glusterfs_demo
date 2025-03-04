@@ -1633,7 +1633,7 @@ static struct volume_options tde_options[] = {
         .type           = GF_OPTION_TYPE_BOOL,
         .default_value  = "false",
         .op_version     = GD_OP_VERSION_6_0,
-        .flags          = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
+        .flags          = OPT_FLAG_SETTABLE,,
         .tags           = "features",
         .description    = "Enable Transparent Data Encryption (TDE) for file I/O",
     },
@@ -1679,5 +1679,5 @@ xlator_api_t xlator_api = {
     .cbks          = &tde_cbks,
     .options       = tde_options,  /* This is critical! */
     .identifier    = "tde",
-    .category      = GF_EXPERIMENTAL,
+    .category      = GF_MAINTAINED,
 };
