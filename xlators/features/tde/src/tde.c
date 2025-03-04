@@ -219,8 +219,9 @@ static int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this,
     struct iatt *prebuf, struct iatt *postbuf,
     dict_t *xdata)
 {
-    gf_msg(0, "%s: writev callback reached: op_ret=%d, op_errno=%d",
-    this->name, op_ret, op_errno);
+    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+        "%s: writev callback reached: op_ret=%d, op_errno=%d",
+        this->name, op_ret, op_errno);
     STACK_UNWIND_STRICT(writev, frame, op_ret, op_errno, prebuf, postbuf, xdata);
     return 0;
 }
@@ -262,14 +263,18 @@ int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
     struct iovec *vector, int32_t count, off_t off,
     uint32_t flags, struct iobref *iobref, dict_t *xdata)
     {
-    gf_msg(0, "%s: writev intercepted at offset %ld, count=%d",
-    this->name, off, count);
+        gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+            "%s: writev intercepted at offset %ld, count=%d",
+            this->name, off, count);
+     
     
     if (count > 0) {
     char *shard_data = (char *)vector[count - 1].iov_base;
     size_t shard_size = vector[count - 1].iov_len;
-    gf_msg(0, "%s: Sending shard data (size %zu) via gRPC",
-    this->name, shard_size);
+    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+        "%s: Sending shard data (size %zu) via gRPC",
+        this->name, shard_size);
+ 
     send_shard_to_grpc(shard_data, shard_size, off);
     }
     
@@ -285,8 +290,10 @@ tde_readv_cbk(call_frame_t *frame, void *cookie, xlator_t *this,
               struct iovec *vector, int32_t count,
               struct iatt *stbuf, struct iobref *iobref, dict_t *xdata)
 {
-    gf_msg(0, "%s: readv callback reached: op_ret=%d, op_errno=%d",
+    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+        "%s: readv callback reached: op_ret=%d, op_errno=%d",
         this->name, op_ret, op_errno);
+ 
     STACK_UNWIND_STRICT(readv, frame, op_ret, op_errno, vector, count, stbuf, iobref, xdata);
     return 0;
 }
@@ -318,8 +325,10 @@ tde_readv(call_frame_t *frame, xlator_t *this, fd_t *fd, size_t size,
           off_t off, uint32_t flags, dict_t *xdata)
 {
 
-    gf_msg(this->name, GF_LOG_DEBUG, 0, "%s: Sending shard data (size %zu) via gRPC",
-    off, size);
+    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+        "%s: Sending shard data (offset %ld, size %zu) via gRPC",
+        this->name, off, size);
+ 
     fetch_shard_from_grpc(off);
 
     STACK_WIND(frame, tde_readv_cbk, FIRST_CHILD(this),
