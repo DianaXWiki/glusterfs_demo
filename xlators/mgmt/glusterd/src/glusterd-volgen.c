@@ -4294,6 +4294,18 @@ client_graph_builder(volgen_graph_t *graph, glusterd_volinfo_t *volinfo,
             goto out;
         }
     }
+    ret = dict_get_str_boolean(set_dict, "features/tde", _gf_false);
+    if (ret == -1)
+        goto out;
+
+    if (ret) {
+        xl = volgen_graph_add(graph, "features/tde", volname);
+        if (!xl) {
+            ret = -1;
+            goto out;
+        }
+    }
+
     /* a. ret will be -1 if features.ctime is not set in the volinfo->dict which
      * means ctime should be loaded into the graph.
      * b. ret will be 1 if features.ctime is explicitly turned on through
