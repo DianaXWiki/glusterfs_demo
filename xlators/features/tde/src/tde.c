@@ -1633,7 +1633,7 @@ static struct volume_options tde_options[] = {
         .type           = GF_OPTION_TYPE_BOOL,
         .default_value  = "false",
         .op_version     = GD_OP_VERSION_6_0,
-        .flags          = OPT_FLAG_SETTABLE,,
+        .flags          = OPT_FLAG_SETTABLE,
         .tags           = "features",
         .description    = "Enable Transparent Data Encryption (TDE) for file I/O",
     },
