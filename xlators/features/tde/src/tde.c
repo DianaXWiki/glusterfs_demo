@@ -8,7 +8,6 @@
  *   cases as published by the Free Software Foundation.
  */
 
-
  #include <stdio.h>
  #include <stdlib.h>
  #include <unistd.h>
@@ -19,9 +18,7 @@
  #include <glusterfs/xlator.h>
  #include "tde.h"
  #include <sys/types.h>
-
- #define GF_XATTR_NAME_MAX 255
-
+ #include <fcntl.h>  
 
 int32_t tde_fgetxattr_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
              int32_t op_errno, dict_t * dict,
@@ -1336,9 +1333,9 @@ int32_t tde_copy_file_range_cbk(call_frame_t *frame, void *cookie, xlator_t *thi
 
 
         int32_t tde_copy_file_range(call_frame_t *frame, xlator_t *this, fd_t * fd_in,
-	off64_t  off_in,
+	off_t  off_in,
 	fd_t * fd_out,
-	off64_t  off_out,
+	off_t  off_out,
 	size_t len,
 	uint32_t flags,
 	dict_t * xdata)
