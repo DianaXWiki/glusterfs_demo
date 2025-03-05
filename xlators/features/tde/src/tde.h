@@ -31,6 +31,25 @@
 #define _GNU_SOURCE
 #endif
 
+#ifndef GF_BSD_HOST_OS
+#if defined(__USE_FILE_OFFSET64) && !defined(__off64_t_defined)
+typedef __off64_t off64_t;
+#endif /* defined(__USE_FILE_OFFSET64) && !defined(__off64_t_defined) */
+#else
+#include <stdio.h>
+#ifndef _OFF64_T_DECLARED
+/*
+ * Including <stdio.h> (done above) should actually define
+ * _OFF64_T_DECLARED with off64_t data type being available
+ * for consumption. But, off64_t data type is not recognizable
+ * for FreeBSD versions less than 11. Hence, int64_t is typedefed
+ * to off64_t.
+ */
+#define _OFF64_T_DECLARED
+typedef int64_t off64_t;
+#endif /* _OFF64_T_DECLARED */
+#endif /* GF_BSD_HOST_OS */
+
 #include "tde-mem-types.h"
 #include "tde-messages.h"
 #include <glusterfs/glusterfs.h>
