@@ -18,6 +18,9 @@
  #include <glusterfs/logging.h>
  #include <glusterfs/xlator.h>
  #include "tde.h"
+ #include <sys/types.h>
+
+ #define GF_XATTR_NAME_MAX 255
 
 
 int32_t tde_fgetxattr_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
