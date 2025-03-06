@@ -19,6 +19,8 @@
  #include "tde.h"
  #include <sys/types.h>
  #include <fcntl.h>  
+ #include<socket.h>
+ #include<sys/un.h>
 
 int32_t tde_fgetxattr_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
              int32_t op_errno, dict_t * dict,
