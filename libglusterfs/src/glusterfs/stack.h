@@ -31,6 +31,7 @@ typedef struct call_pool call_pool_t;
 #include "glusterfs/client_t.h"
 #include "glusterfs/libglusterfs-messages.h"
 #include "glusterfs/timespec.h"
+#include <limits.h>
 
 #define NFS_PID 1
 #define LOW_PRIO_PROC_PID -1

@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 
+#define GF_XATTR_NAME_MAX 256
+
 #ifndef LLONG_MAX
 #define LLONG_MAX __LONG_LONG_MAX__ /* compat with old gcc */
 #endif                              /* LLONG_MAX */
