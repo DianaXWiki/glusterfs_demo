@@ -1641,31 +1641,31 @@ static struct volume_options tde_options[] = {
 };
 
 
-struct xlator_fops tde_fops = {
-    .lookup         = tde_lookup,
-    .open           = tde_open,
-    .opendir        = tde_opendir,
-    .readv          = tde_readv,
-    .writev         = tde_writev,
-    .truncate       = tde_truncate,
-    .ftruncate      = tde_ftruncate,
-    .getxattr       = tde_getxattr,
-    .fgetxattr      = tde_fgetxattr,
-    .setxattr       = tde_setxattr,
-    .fsetxattr      = tde_fsetxattr,
-    .removexattr    = tde_removexattr,
-    .fremovexattr   = tde_fremovexattr,
-    .stat           = tde_stat,
-    .fstat          = tde_fstat,
-    .copy_file_range= tde_copy_file_range,
-    /* Add additional FOP function pointers as needed */
-};
-struct xlator_cbks tde_cbks = {
-    .forget         = tde_forget,     /* e.g. a function that handles forgetting an inode */
-    .release        = tde_release,    /* e.g. a function to handle file descriptor release */
-    .releasedir     = tde_releasedir, /* e.g. a function to handle directory release */
-    /* Add additional callback pointers as needed */
-};
+// struct xlator_fops tde_fops = {
+//     .lookup         = tde_lookup,
+//     .open           = tde_open,
+//     .opendir        = tde_opendir,
+//     .readv          = tde_readv,
+//     .writev         = tde_writev,
+//     .truncate       = tde_truncate,
+//     .ftruncate      = tde_ftruncate,
+//     .getxattr       = tde_getxattr,
+//     .fgetxattr      = tde_fgetxattr,
+//     .setxattr       = tde_setxattr,
+//     .fsetxattr      = tde_fsetxattr,
+//     .removexattr    = tde_removexattr,
+//     .fremovexattr   = tde_fremovexattr,
+//     .stat           = tde_stat,
+//     .fstat          = tde_fstat,
+//     .copy_file_range= tde_copy_file_range,
+//     /* Add additional FOP function pointers as needed */
+// };
+// struct xlator_cbks tde_cbks = {
+//     .forget         = tde_forget,     /* e.g. a function that handles forgetting an inode */
+//     .release        = tde_release,    /* e.g. a function to handle file descriptor release */
+//     .releasedir     = tde_releasedir, /* e.g. a function to handle directory release */
+//     /* Add additional callback pointers as needed */
+// };
 
 xlator_api_t xlator_api = {
     .init          = tde_init,

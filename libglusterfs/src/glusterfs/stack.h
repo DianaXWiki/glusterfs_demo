@@ -34,7 +34,9 @@ typedef struct call_pool call_pool_t;
 
 #define NFS_PID 1
 #define LOW_PRIO_PROC_PID -1
-
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
 #define STACK_ERR_XL_NAME(stack) (stack->err_xl ? stack->err_xl->name : "-")
 #define STACK_CLIENT_NAME(stack)                                               \
     (stack->client ? stack->client->client_uid : "-")

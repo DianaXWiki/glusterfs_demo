@@ -274,7 +274,7 @@ typedef int64_t off64_t;
  *       and change the off_in and off_out to (loff_t *).
  */
 ssize_t
-sys_copy_file_range(int fd_in, off64_t *off_in, int fd_out, off64_t *off_out,
+sys_copy_file_range(int fd_in, off_t *off_in, int fd_out, off_t *off_out,
                     size_t len, unsigned int flags);
 
 int
