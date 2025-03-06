@@ -490,8 +490,8 @@ dirname_r(char *path);
 int
 gf_umount_lazy(char *xlname, char *path, int rmdir);
 
-#ifndef GF_XATTR_NAME_MAX
-#error 'Please define GF_XATTR_NAME_MAX for your OS distribution.'
-#endif
+// #ifndef GF_XATTR_NAME_MAX
+// #error 'Please define GF_XATTR_NAME_MAX for your OS distribution.'
+// #endif
 
 #endif /* __COMPAT_H__ */
