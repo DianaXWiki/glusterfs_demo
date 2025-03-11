@@ -1629,11 +1629,11 @@ static int32_t tde_dump_metrics(xlator_t *this, int fd)
 
 static struct volume_options tde_options[] = {
     {
-        .key            =  {"tde"},
+        .key            =  "tde",
         .type           = GF_OPTION_TYPE_BOOL,
         .default_value  = "off",
         .description = "enable/disable tde",
-        .op_version = {GD_OP_VERSION_6_0},
+        .op_version = GD_OP_VERSION_6_0,
         .flags = OPT_FLAG_SETTABLE,
     },
     { .key = NULL }
@@ -1673,7 +1673,7 @@ xlator_api_t xlator_api = {
     .reconfigure   = tde_reconfigure,
     .mem_acct_init = tde_mem_acct_init,
     .dump_metrics  = tde_dump_metrics,
-    .op_version    =  {1},
+    .op_version    = GD_OP_VERSION_6_0,
     // .fops          = &tde_fops,
     // .cbks          = &tde_cbks,
     .options       = tde_options,  /* This is critical! */
