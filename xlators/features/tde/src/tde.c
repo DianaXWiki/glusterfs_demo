@@ -1677,6 +1677,6 @@ xlator_api_t xlator_api = {
     // .fops          = &tde_fops,
     // .cbks          = &tde_cbks,
     .options       = tde_options,  /* This is critical! */
-    .identifier    = "tde",
+    .identifier    = "features.tde",
     .category      = GF_MAINTAINED,
 };
