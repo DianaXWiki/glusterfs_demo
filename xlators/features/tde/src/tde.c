@@ -8,20 +8,9 @@
  *   cases as published by the Free Software Foundation.
  */
 
- #include <stdio.h>
- #include <stdlib.h>
- #include <unistd.h>
- #include <errno.h>
- #include <string.h>
- #include <sys/wait.h>
- #include <glusterfs/logging.h>
- #include <glusterfs/xlator.h>
- #include <sys/types.h>
- #include <fcntl.h>  
- #include<sys/socket.h>
- #include<sys/un.h>
- #include <stdint.h>
+
 #include "tde.h"
+
 
 int32_t tde_fgetxattr_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
              int32_t op_errno, dict_t * dict,
@@ -217,122 +206,56 @@ err:
 }
 
 
-static int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this,
-    int32_t op_ret, int32_t op_errno,
-    struct iatt *prebuf, struct iatt *postbuf,
-    dict_t *xdata)
+int32_t tde_writev_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
+             int32_t op_errno, struct iatt * prebuf,
+	struct iatt * postbuf,
+	dict_t * xdata)
 {
-    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
-        "%s: writev callback reached: op_ret=%d, op_errno=%d",
-        this->name, op_ret, op_errno);
     STACK_UNWIND_STRICT(writev, frame, op_ret, op_errno, prebuf, postbuf, xdata);
     return 0;
 }
 
 
-void send_shard_to_grpc(char *data, size_t size, off_t offset) {
-    int sockfd;
-    struct sockaddr_un addr;
-    
-    // Open Unix domain socket
-    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        perror("socket error");
-        return;
-    }
-
-    memset(&addr, 0, sizeof(struct sockaddr_un));
-    addr.sun_family = AF_UNIX;
-    strcpy(addr.sun_path, "/tmp/tde_shard_socket");
-
-    if (connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) == -1) {
-        perror("connect error");
-        close(sockfd);
-        return;
-    }
-
-    // Format the message
-    char message[1024];
-    snprintf(message, sizeof(message), "%ld|%zu|%s", offset, size, "shard_data_here");
-
-    // Send message
-    write(sockfd, message, strlen(message));
-    close(sockfd);
-}
-
-
-int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
-    struct iovec *vector, int32_t count, off_t offset,
-    uint32_t flags, struct iobref *iobref, dict_t *xdata)
+        int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t * fd,
+	struct iovec * vector,
+	int32_t count,
+	off_t off,
+	uint32_t flags,
+	struct iobref * iobref,
+	dict_t * xdata)
 {
-    if (count > 0) {
-        char *shard_data = (char *)vector[count - 1].iov_base;
-        size_t shard_size = vector[count - 1].iov_len;
-
-        gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
-            "%s: TDE Intercepting shard (size: %zu) at offset %ld",
-            this->name, shard_size, offset);
-
-        // 🚀 Send shard data to gRPC server
-        send_shard_to_grpc(shard_data, shard_size, offset);
-    }
-
-    // Pass the write operation down the stack (POSIX)
     STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
-               FIRST_CHILD(this)->fops->writev, fd, vector, count, offset, flags, iobref, xdata);
+               FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
+    return 0;
+err:
+    STACK_UNWIND_STRICT(writev, frame, -1, errno, NULL, NULL, NULL);
     return 0;
 }
 
 
-static int32_t
-tde_readv_cbk(call_frame_t *frame, void *cookie, xlator_t *this,
-              int32_t op_ret, int32_t op_errno,
-              struct iovec *vector, int32_t count,
-              struct iatt *stbuf, struct iobref *iobref, dict_t *xdata)
+int32_t tde_readv_cbk(call_frame_t *frame, void *cookie, xlator_t *this, int32_t op_ret,
+             int32_t op_errno, struct iovec * vector,
+	int32_t count,
+	struct iatt * stbuf,
+	struct iobref * iobref,
+	dict_t * xdata)
 {
-    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
-        "%s: readv callback reached: op_ret=%d, op_errno=%d",
-        this->name, op_ret, op_errno);
- 
     STACK_UNWIND_STRICT(readv, frame, op_ret, op_errno, vector, count, stbuf, iobref, xdata);
     return 0;
 }
 
-void fetch_shard_from_grpc(off_t offset) {
-    pid_t pid = fork();
-    if (pid == 0) {  // Child process
-        char offset_str[32];
-        snprintf(offset_str, sizeof(offset_str), "%ld", offset);
 
-        char *args[] = {
-            "python3", 
-            "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
-            "fetch",
-            offset_str,
-            NULL
-        };
-        execvp(args[0], args);
-        perror("execvp failed");  // If exec fails
-        exit(1);
-    } else if (pid < 0) {
-        perror("fork failed");  // Fork error
-    }
-}
-
-
-int32_t
-tde_readv(call_frame_t *frame, xlator_t *this, fd_t *fd, size_t size,
-          off_t off, uint32_t flags, dict_t *xdata)
+        int32_t tde_readv(call_frame_t *frame, xlator_t *this, fd_t * fd,
+	size_t size,
+	off_t offset,
+	uint32_t flags,
+	dict_t * xdata)
 {
-
-    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
-        "%s: Sending shard data (offset %ld, size %zu) via gRPC",
-        this->name, off, size);
- 
-    fetch_shard_from_grpc(off);
-
     STACK_WIND(frame, tde_readv_cbk, FIRST_CHILD(this),
-               FIRST_CHILD(this)->fops->readv, fd, size, off, flags, xdata);
+               FIRST_CHILD(this)->fops->readv, fd, size, offset, flags, xdata);
+    return 0;
+err:
+    STACK_UNWIND_STRICT(readv, frame, -1, errno, NULL, -1, NULL, NULL, NULL);
     return 0;
 }
 
@@ -1333,9 +1256,9 @@ int32_t tde_copy_file_range_cbk(call_frame_t *frame, void *cookie, xlator_t *thi
 
 
         int32_t tde_copy_file_range(call_frame_t *frame, xlator_t *this, fd_t * fd_in,
-	off_t  off_in,
+	off64_t  off_in,
 	fd_t * fd_out,
-	off_t  off_out,
+	off64_t  off_out,
 	size_t len,
 	uint32_t flags,
 	dict_t * xdata)
@@ -1432,13 +1355,11 @@ int32_t tde_fdctx(xlator_t * this,
 }
 
 
-static int32_t tde_priv_to_dict(xlator_t *this, dict_t *dict, char *str) {
-    if (str)
-        snprintf(str, 256, "TDE Translator");
-    
+int32_t tde_priv_to_dict(xlator_t * this,
+	dict_t * dict)
+{
     return 0;
 }
-
 
 
 int32_t tde_inode_to_dict(xlator_t * this,
@@ -1556,71 +1477,10 @@ struct xlator_dumpops dumpops = {
         .history              = tde_history,
 };
 
-
-// int32_t tde_init(xlator_t *this)
-// {
-//     /* Use gf_msg to log (if available) instead of printf */
-//     gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
-//         "%s: Initializing TDE Translator...", this->name);
-
-//     pid_t pid = fork();
-//     if (pid < 0) {
-//         gf_msg(this->name, GF_LOG_ERROR, errno, 0,
-//             "%s: fork failed: %s", this->name, strerror(errno));
-//         return -errno;
-//     } else if (pid == 0) {
-//         /* In first child: perform a double-fork to detach from parent */
-//         pid_t pid2 = fork();
-//         if (pid2 < 0) {
-//             perror("Second fork failed");
-//             _exit(1);
-//         } else if (pid2 > 0) {
-//             /* First child exits so that the grandchild is re-parented to init */
-//             _exit(0);
-//         }
-//         /* In grandchild: detach from controlling terminal */
-//         if (setsid() < 0) {
-//             perror("setsid failed");
-//             _exit(1);
-//         }
-//         /* Execute the Python script */
-//         char *args[] = {"python3",
-//                         "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
-//                         "start",
-//                         NULL};
-//         execvp(args[0], args);
-//         /* If execvp returns, it failed */
-//         perror("execvp failed");
-//         _exit(1);
-//     }
-//     /* Parent: wait for the first child to prevent zombie */
-//     int status = 0;
-//     waitpid(pid, &status, 0);
-//     return 0;
-// }
-
-int32_t tde_init(xlator_t *this)
+static int32_t tde_init(xlator_t *this)
 {
-    /* Log a debug message to track the initialization process */
-    gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
-           "%s: Initializing TDE Translator...", this->name);
-
-    /* Ensure that the options dictionary is initialized */
-    dict_t *xl_options = this->options;
-
-    /* Initialize the features.tde option */
-    int ret = dict_set_int32(xl_options, "features.tde", 1);  // 1 means enabled
-    if (ret) {
-        gf_msg(this->name, GF_LOG_ERROR, 0, 0, "Failed to set features.tde option");
-        return -1;
-    }
-
-    /* Log that the TDE feature was enabled */
-    gf_msg(this->name, GF_LOG_INFO, 0, 0, "TDE feature enabled for %s", this->name);
-
     return 0;
 }
-
 
 static void tde_fini(xlator_t *this)
 {
@@ -1650,56 +1510,33 @@ static int32_t tde_dump_metrics(xlator_t *this, int fd)
     return 0;
 }
 
-static struct volume_options tde_options[] = {
-    {
-        .key            =  "features.tde",
-        .type           = GF_OPTION_TYPE_BOOL,
-        .default_value  = "off",
-        .description    = "enable/disable tde",
-        .op_version = GD_OP_VERSION_6_0,
-        .flags = OPT_FLAG_SETTABLE | OPT_FLAG_CLIENT_OPT,
+struct volume_options tde_options[] = {
+    /*{ .key  = {""},
+      .type = GF_OPTION_TYPE_BOOL,
+      .default_value = "",
+      .op_version = {GD_OP_VERSION_},
+      .flags = OPT_FLAG_SETTABLE | OPT_FLAG_DOC | OPT_FLAG_CLIENT_OPT,
+      .tags = {""},
+      .description = "",
+      .category = GF_EXPERIMENTAL,
     },
-    { .key = NULL }
+    { .key = {NULL} },
+    */
 };
-
-
-// struct xlator_fops tde_fops = {
-//     .lookup         = tde_lookup,
-//     .open           = tde_open,
-//     .opendir        = tde_opendir,
-//     .readv          = tde_readv,
-//     .writev         = tde_writev,
-//     .truncate       = tde_truncate,
-//     .ftruncate      = tde_ftruncate,
-//     .getxattr       = tde_getxattr,
-//     .fgetxattr      = tde_fgetxattr,
-//     .setxattr       = tde_setxattr,
-//     .fsetxattr      = tde_fsetxattr,
-//     .removexattr    = tde_removexattr,
-//     .fremovexattr   = tde_fremovexattr,
-//     .stat           = tde_stat,
-//     .fstat          = tde_fstat,
-//     .copy_file_range= tde_copy_file_range,
-//     /* Add additional FOP function pointers as needed */
-// };
-// struct xlator_cbks tde_cbks = {
-//     .forget         = tde_forget,     /* e.g. a function that handles forgetting an inode */
-//     .release        = tde_release,    /* e.g. a function to handle file descriptor release */
-//     .releasedir     = tde_releasedir, /* e.g. a function to handle directory release */
-//     /* Add additional callback pointers as needed */
-// };
 
 xlator_api_t xlator_api = {
-    .init          = tde_init,
-    .fini          = tde_fini,
-    .notify        = tde_notify,
-    .reconfigure   = tde_reconfigure,
+    .init = tde_init,
+    .fini = tde_fini,
+    .notify = tde_notify,
+    .reconfigure = tde_reconfigure,
     .mem_acct_init = tde_mem_acct_init,
-    .dump_metrics  = tde_dump_metrics,
-    .op_version    = GD_OP_VERSION_6_0,
-    // .fops          = &tde_fops,
-    // .cbks          = &tde_cbks,
-    .options       = tde_options,  /* This is critical! */
-    .identifier    = "features.tde",
-    .category      = GF_MAINTAINED,
+    .dump_metrics = tde_dump_metrics,
+    .op_version = {GD_OP_VERSION_},
+    .dumpops = &tde_dumpops,
+    .fops = &tde_fops,
+    .cbks = &@FOP_PREFIX @_cbks,
+    .options = tde_options,
+    .identifier = "tde",
+    .category = GF_EXPERIMENTAL,
 };
+

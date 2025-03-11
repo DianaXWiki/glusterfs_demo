@@ -43,15 +43,16 @@
 
 /* Example:
  *
- *    GLFS_NEW(COMPONENT, MSGID, "Message text", 7 /* num fields *
-        GLFS_INT(integer),
-         GLFS_UINT(number),
-         GLFS_STR(name),
-         GLFS_UUID(gfid),
-         GLFS_PTR(pointer),
-         GLFS_ERR(error),
-         GLFS_RES(result)
-  */
+ *    GLFS_NEW(COMPONENT, MSGID, "Message text", 7 /* num fields */,
+ *        GLFS_INT(integer),
+ *        GLFS_UINT(number),
+ *        GLFS_STR(name),
+ *        GLFS_UUID(gfid),
+ *        GLFS_PTR(pointer),
+ *        GLFS_ERR(error),
+ *        GLFS_RES(result)
+ *    )
+ */
 
 /* Add new messages above this line. */
 

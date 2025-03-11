@@ -9,8 +9,8 @@
  */
 
 
-#ifndef __TDE_MEM_TYPES_H__
-#define __TDE_MEM_TYPES_H__
+#ifndef __ TDE_MEM_TYPES_H__
+#define __ TDE_MEM_TYPES_H__
 
 #include <glusterfs/mem-types.h>
 
