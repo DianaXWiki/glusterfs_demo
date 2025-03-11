@@ -8,9 +8,7 @@
 #include "tde.h"
 #include "tde-messages.h"
 #include "tde-mem-types.h"
-// A structure to hold the private data for TDE
 
-// The encryption and decryption routines using AES (as an example)
 void aes_encrypt(char *data, int len, AES_KEY *key) {
     unsigned char iv[AES_BLOCK_SIZE] = {0};  // Simple IV, should be random in production
     unsigned char out[AES_BLOCK_SIZE];
@@ -86,39 +84,34 @@ int32_t init(xlator_t *this) {
     data_t *data = NULL;
     tde_private_t *priv = NULL;
 
-    if (!this->children || this->children->next) {
-        gf_log("tde", GF_LOG_ERROR, "FATAL: TDE should have exactly one child");
+    if (!this) {
+        gf_msg("tde", GF_LOG_ERROR, 0, TDE_MSG_NULL_THIS,
+               "this is NULL. init() failed");
         return -1;
     }
 
     if (!this->parents) {
-        gf_log(this->name, GF_LOG_WARNING, "dangling volume. check volfile ");
+        gf_msg(this->name, GF_LOG_ERROR, 0, TDE_MSG_INVALID_VOLFILE,
+               "Dangling volume. Check volfile");
+        goto out;
     }
 
-    priv = GF_CALLOC(sizeof(tde_private_t), 1, 0);
+    if (!this->children || this->children->next) {
+        gf_msg(this->name, GF_LOG_ERROR, 0, TDE_MSG_INVALID_VOLFILE,
+               "tde not configured with exactly one sub-volume. "
+               "Check volfile");
+        goto out;
+    }
+    priv = GF_CALLOC(1, sizeof(tde_private_t), gf_tde_mt_priv_t);
     if (!priv)
-        return -1;
+        goto out;
 
-    priv->decrypt_read = 1;  // Default: decrypt on read
-    priv->encrypt_write = 1; // Default: encrypt on write
+        GF_OPTION_INIT("tde", priv->tde_enabled, size_uint64, out);
+        GF_OPTION_INIT("tde-encrypt-write", priv->encrypt_write, size_uint64, out);
+        GF_OPTION_INIT("tde-decrypt-read", priv->decrypt_read, size_uint64, out);
+    
 
-    data = dict_get(this->options, "encrypt-write");
-    if (data) {
-        if (gf_string2boolean(data->data, &priv->encrypt_write) == -1) {
-            gf_log(this->name, GF_LOG_ERROR, "encrypt-write takes only boolean options");
-            GF_FREE(priv);
-            return -1;
-        }
-    }
-
-    data = dict_get(this->options, "decrypt-read");
-    if (data) {
-        if (gf_string2boolean(data->data, &priv->decrypt_read) == -1) {
-            gf_log(this->name, GF_LOG_ERROR, "decrypt-read takes only boolean options");
-            GF_FREE(priv);
-            return -1;
-        }
-    }
+   
 
     // Set the encryption key (in real use, this should come from a key manager)
     if (RAND_bytes((unsigned char *)&priv->enc_key, sizeof(AES_KEY)) != 1) {
@@ -130,36 +123,64 @@ int32_t init(xlator_t *this) {
     // Set the decryption key (same as the encryption key for simplicity)
     priv->dec_key = priv->enc_key;
 
-    data = dict_get(this->options, "tde");
-    if (data) {
-        if (gf_string2boolean(data->data, &priv->tde_enabled) == -1) {
-            gf_log(this->name, GF_LOG_ERROR, "features.tde takes only boolean options");
-            GF_FREE(priv);
-            return -1;
-        }
-    }
 
-    if (priv->tde_enabled) {
-        gf_log(this->name, GF_LOG_DEBUG, "TDE feature enabled");
-        // Initialize TDE functionality here, such as loading keys and setting up encryption
-    } else {
-        gf_log(this->name, GF_LOG_DEBUG, "TDE feature disabled");
-    }
+
 
 
     this->private = priv;
+    LOCK_INIT(&priv->lock);
+    INIT_LIST_HEAD(&priv->ilist_head);
     gf_log("tde", GF_LOG_DEBUG, "TDE xlator loaded");
-    return 0;
+    ret = 0;
+out:
+    if (ret) {
+        GF_FREE(priv);
+        mem_pool_destroy(this->local_pool);
+    }
+
+    return ret;
 }
 
 // Finalize the TDE translator
 void fini(xlator_t *this) {
     tde_private_t *priv = this->private;
 
+    GF_VALIDATE_OR_GOTO("tde", this, out);
+    this->itable = NULL;
+
+    // mem_pool_destroy(this->local_pool);
+    // this->local_pool = NULL;
+
+    priv = this->private;
     if (!priv)
-        return;
+        goto out;
+
+    //shard_unlink_handler_fini(&priv->thread_info);
+
     this->private = NULL;
+    LOCK_DESTROY(&priv->lock);
     GF_FREE(priv);
+
+out:
+    return;
+}
+
+int
+reconfigure(xlator_t *this, dict_t *options)
+{
+    int ret = -1;
+    tde_priv_t *priv = NULL;
+
+    priv = this->private;
+
+    GF_OPTION_RECONF("tde-encrypt-write", priv->encrypt_write, options, uint64, out);
+
+    GF_OPTION_RECONF("tde-decrypt-read", priv->decrypt_read, options, uint64,
+                     out);
+    ret = 0;
+
+out:
+    return ret;
 }
 
 struct xlator_fops fops = {
@@ -179,7 +200,21 @@ struct volume_options options[] = {
         .op_version = {GD_OP_VERSION_6_0},
         .flags = OPT_FLAG_SETTABLE,
     },
-    {.key = {"encrypt-write"}, .type = GF_OPTION_TYPE_BOOL},
-    {.key = {"decrypt-read"}, .type = GF_OPTION_TYPE_BOOL},
+    {.key = {"tde-encrypt-write"}, .type = GF_OPTION_TYPE_BOOL,  .tags = {"tde"},},
+    {.key = {"tde-decrypt-read"}, .type = GF_OPTION_TYPE_BOOL,  .tags = {"tde"},},
     {.key = {NULL}},
+};
+
+xlator_api_t xlator_api = {
+    .init = init,
+    .fini = fini,
+    .reconfigure = reconfigure,
+    //.mem_acct_init = mem_acct_init,
+    .op_version = {1}, /* Present from the initial version */
+    //.dumpops = &dumpops,
+    .fops = &fops,
+    .cbks = &cbks,
+    .options = options,
+    .identifier = "tde",
+    .category = GF_MAINTAINED,
 };
