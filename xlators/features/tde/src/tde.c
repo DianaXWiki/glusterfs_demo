@@ -81,6 +81,7 @@ int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
 
 // Initialize the TDE translator
 int32_t init(xlator_t *this) {
+    int ret = -1;
     data_t *data = NULL;
     tde_private_t *priv = NULL;
 
