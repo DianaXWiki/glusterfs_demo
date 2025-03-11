@@ -1630,7 +1630,6 @@ static int32_t tde_dump_metrics(xlator_t *this, int fd)
 static struct volume_options tde_options[] = {
     {
         .key            =  "features.tde",
-        .voltype        = "features/tde",
         .type           = GF_OPTION_TYPE_BOOL,
         .default_value  = "off",
         .description = "enable/disable tde",
