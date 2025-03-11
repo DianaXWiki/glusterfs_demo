@@ -2585,22 +2585,17 @@ struct volopt_map_entry glusterd_volopt_map[] = {
     {.key = "features.shard-deletion-rate",
      .voltype = "features/shard",
      .op_version = GD_OP_VERSION_5_0,
-     .flags = VOLOPT_FLAG_CLIENT_OPT},
+     .flags = VOLOPT_FLAG_CLIENT_OPT
+    },
      {
         .key = "features.tde",
         .voltype = "features/tde",
         .value = "off",
         .option = "!tde",
-        .op_version = GD_OP_VERSION_6_0, // Ensure it's a compatible version
+        .op_version = GD_OP_VERSION_3_7_0,
         .description = "Enable/disable Transparent Data Encryption (TDE) on the volume.",
         .flags = VOLOPT_FLAG_CLIENT_OPT | VOLOPT_FLAG_XLATOR_OPT,
-    },
-    {
-        .key = "features.tde-enable",
-        .voltype = "features/tde",
-        .op_version = GD_OP_VERSION_6_0,
-        .flags = VOLOPT_FLAG_CLIENT_OPT,
-    },    
+    },   
     {
         .key = "features.scrub-throttle",
         .voltype = "features/bit-rot",

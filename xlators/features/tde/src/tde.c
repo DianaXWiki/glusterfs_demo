@@ -1632,7 +1632,7 @@ static struct volume_options tde_options[] = {
         .key            =  "features.tde",
         .type           = GF_OPTION_TYPE_BOOL,
         .default_value  = "off",
-        .description = "enable/disable tde",
+        .description    = "enable/disable tde",
         .op_version = GD_OP_VERSION_6_0,
         .flags = OPT_FLAG_SETTABLE | OPT_FLAG_CLIENT_OPT,
     },
