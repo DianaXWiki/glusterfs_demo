@@ -162,7 +162,7 @@ int
 reconfigure(xlator_t *this, dict_t *options)
 {
     int ret = -1;
-    tde_priv_t *priv = NULL;
+    tde_private_t *priv = NULL;
 
     priv = this->private;
 
