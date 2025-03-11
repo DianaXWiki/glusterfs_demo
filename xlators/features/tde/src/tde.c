@@ -106,10 +106,9 @@ int32_t init(xlator_t *this) {
     if (!priv)
         goto out;
 
-        GF_OPTION_INIT("tde", priv->tde_enabled, size_uint64, out);
-        GF_OPTION_INIT("tde-encrypt-write", priv->encrypt_write, size_uint64, out);
-        GF_OPTION_INIT("tde-decrypt-read", priv->decrypt_read, size_uint64, out);
-    
+        GF_OPTION_INIT("tde", priv->tde_enabled, bool, out);
+        GF_OPTION_INIT("tde-encrypt-write", priv->encrypt_write, bool, out);
+        GF_OPTION_INIT("tde-decrypt-read", priv->decrypt_read, bool, out);
 
    
 
@@ -123,19 +122,13 @@ int32_t init(xlator_t *this) {
     // Set the decryption key (same as the encryption key for simplicity)
     priv->dec_key = priv->enc_key;
 
-
-
-
-
     this->private = priv;
     LOCK_INIT(&priv->lock);
-    INIT_LIST_HEAD(&priv->ilist_head);
     gf_log("tde", GF_LOG_DEBUG, "TDE xlator loaded");
     ret = 0;
 out:
     if (ret) {
         GF_FREE(priv);
-        mem_pool_destroy(this->local_pool);
     }
 
     return ret;

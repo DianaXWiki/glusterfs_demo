@@ -15,7 +15,7 @@
 #include <glusterfs/mem-types.h>
 
 enum gf_mdc_mem_types_ {
-    gf_tde_mt_ = gf_common_mt_end + 1,
+    gf_tde_mt_priv_t = gf_common_mt_end + 1,
     gf_tde_mt_end
 };
 

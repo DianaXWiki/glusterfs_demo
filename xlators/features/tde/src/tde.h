@@ -19,6 +19,7 @@
 #include <glusterfs/defaults.h>
 
 typedef struct tde_private_t {
+    pthread_mutex_t lock; // Mutex for thread safety
     int tde_enabled; // Flag for enabling the TDE feature
     int encrypt_write;   // Flag for enabling encryption during writes
     int decrypt_read;    // Flag for enabling decryption during reads
