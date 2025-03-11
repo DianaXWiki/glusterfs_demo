@@ -4301,6 +4301,7 @@ client_graph_builder(volgen_graph_t *graph, glusterd_volinfo_t *volinfo,
     if (ret) {
         xl = volgen_graph_add(graph, "features/tde", volname);
         if (!xl) {
+            gf_msg("tde", GF_LOG_ERROR, 0, 0, "Failed to add TDE translator");
             ret = -1;
             goto out;
         }

@@ -1629,12 +1629,13 @@ static int32_t tde_dump_metrics(xlator_t *this, int fd)
 
 static struct volume_options tde_options[] = {
     {
-        .key            =  "tde",
+        .key            =  "features.tde",
+        .voltype        = "features/tde"
         .type           = GF_OPTION_TYPE_BOOL,
         .default_value  = "off",
         .description = "enable/disable tde",
         .op_version = GD_OP_VERSION_6_0,
-        .flags = OPT_FLAG_SETTABLE,
+        .flags = OPT_FLAG_SETTABLE | OPT_FLAG_CLIENT_OPT,
     },
     { .key = NULL }
 };
