@@ -1557,47 +1557,70 @@ struct xlator_dumpops dumpops = {
 };
 
 
+// int32_t tde_init(xlator_t *this)
+// {
+//     /* Use gf_msg to log (if available) instead of printf */
+//     gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+//         "%s: Initializing TDE Translator...", this->name);
+
+//     pid_t pid = fork();
+//     if (pid < 0) {
+//         gf_msg(this->name, GF_LOG_ERROR, errno, 0,
+//             "%s: fork failed: %s", this->name, strerror(errno));
+//         return -errno;
+//     } else if (pid == 0) {
+//         /* In first child: perform a double-fork to detach from parent */
+//         pid_t pid2 = fork();
+//         if (pid2 < 0) {
+//             perror("Second fork failed");
+//             _exit(1);
+//         } else if (pid2 > 0) {
+//             /* First child exits so that the grandchild is re-parented to init */
+//             _exit(0);
+//         }
+//         /* In grandchild: detach from controlling terminal */
+//         if (setsid() < 0) {
+//             perror("setsid failed");
+//             _exit(1);
+//         }
+//         /* Execute the Python script */
+//         char *args[] = {"python3",
+//                         "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
+//                         "start",
+//                         NULL};
+//         execvp(args[0], args);
+//         /* If execvp returns, it failed */
+//         perror("execvp failed");
+//         _exit(1);
+//     }
+//     /* Parent: wait for the first child to prevent zombie */
+//     int status = 0;
+//     waitpid(pid, &status, 0);
+//     return 0;
+// }
+
 int32_t tde_init(xlator_t *this)
 {
-    /* Use gf_msg to log (if available) instead of printf */
+    /* Log a debug message to track the initialization process */
     gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
-        "%s: Initializing TDE Translator...", this->name);
+           "%s: Initializing TDE Translator...", this->name);
 
-    pid_t pid = fork();
-    if (pid < 0) {
-        gf_msg(this->name, GF_LOG_ERROR, errno, 0,
-            "%s: fork failed: %s", this->name, strerror(errno));
-        return -errno;
-    } else if (pid == 0) {
-        /* In first child: perform a double-fork to detach from parent */
-        pid_t pid2 = fork();
-        if (pid2 < 0) {
-            perror("Second fork failed");
-            _exit(1);
-        } else if (pid2 > 0) {
-            /* First child exits so that the grandchild is re-parented to init */
-            _exit(0);
-        }
-        /* In grandchild: detach from controlling terminal */
-        if (setsid() < 0) {
-            perror("setsid failed");
-            _exit(1);
-        }
-        /* Execute the Python script */
-        char *args[] = {"python3",
-                        "/opt/glusterfs/xlators/features/tde/src/grpc_client.py",
-                        "start",
-                        NULL};
-        execvp(args[0], args);
-        /* If execvp returns, it failed */
-        perror("execvp failed");
-        _exit(1);
+    /* Ensure that the options dictionary is initialized */
+    dict_t *xl_options = this->options;
+
+    /* Initialize the features.tde option */
+    int ret = dict_set_int32(xl_options, "features.tde", 1);  // 1 means enabled
+    if (ret) {
+        gf_msg(this->name, GF_LOG_ERROR, 0, 0, "Failed to set features.tde option");
+        return -1;
     }
-    /* Parent: wait for the first child to prevent zombie */
-    int status = 0;
-    waitpid(pid, &status, 0);
+
+    /* Log that the TDE feature was enabled */
+    gf_msg(this->name, GF_LOG_INFO, 0, 0, "TDE feature enabled for %s", this->name);
+
     return 0;
 }
+
 
 static void tde_fini(xlator_t *this)
 {
