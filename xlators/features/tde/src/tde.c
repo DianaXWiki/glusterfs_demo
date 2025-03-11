@@ -128,6 +128,23 @@ int32_t init(xlator_t *this) {
     // Set the decryption key (same as the encryption key for simplicity)
     priv->dec_key = priv->enc_key;
 
+    data = dict_get(this->options, "tde");
+    if (data) {
+        if (gf_string2boolean(data->data, &priv->tde_enabled) == -1) {
+            gf_log(this->name, GF_LOG_ERROR, "features.tde takes only boolean options");
+            GF_FREE(priv);
+            return -1;
+        }
+    }
+
+    if (priv->tde_enabled) {
+        gf_log(this->name, GF_LOG_DEBUG, "TDE feature enabled");
+        // Initialize TDE functionality here, such as loading keys and setting up encryption
+    } else {
+        gf_log(this->name, GF_LOG_DEBUG, "TDE feature disabled");
+    }
+
+
     this->private = priv;
     gf_log("tde", GF_LOG_DEBUG, "TDE xlator loaded");
     return 0;
@@ -152,7 +169,14 @@ struct xlator_cbks cbks = {
 };
 
 struct volume_options options[] = {
-    {.key = {"tde-enabled"}, .type = GF_OPTION_TYPE_BOOL, .default_value = "off"},
+    {
+        .key = {"tde"},
+        .type = GF_OPTION_TYPE_BOOL,
+        .default_value = "off",
+        .description = "enable/disable tde",
+        .op_version = {GD_OP_VERSION_6_0},
+        .flags = OPT_FLAG_SETTABLE,
+    },
     {.key = {"encrypt-write"}, .type = GF_OPTION_TYPE_BOOL},
     {.key = {"decrypt-read"}, .type = GF_OPTION_TYPE_BOOL},
     {.key = {NULL}},
