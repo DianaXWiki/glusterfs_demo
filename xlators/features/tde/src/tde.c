@@ -271,15 +271,15 @@ int32_t tde_writev(call_frame_t *frame, xlator_t *this, fd_t *fd,
 
         gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
             "%s: TDE Intercepting shard (size: %zu) at offset %ld",
-            this->name, shard_size, off);
+            this->name, shard_size, offset);
 
         // 🚀 Send shard data to gRPC server
-        send_shard_to_grpc(shard_data, shard_size, off);
+        send_shard_to_grpc(shard_data, shard_size, offset);
     }
 
     // Pass the write operation down the stack (POSIX)
     STACK_WIND(frame, tde_writev_cbk, FIRST_CHILD(this),
-               FIRST_CHILD(this)->fops->writev, fd, vector, count, off, flags, iobref, xdata);
+               FIRST_CHILD(this)->fops->writev, fd, vector, count, offset, flags, iobref, xdata);
     return 0;
 }
 
