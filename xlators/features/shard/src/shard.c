@@ -608,6 +608,31 @@ shard_internal_dir_string(shard_internal_dir_type_t type)
     }
 }
 
+void notify_tde_of_shard(const char *path) {
+    int sockfd;
+    struct sockaddr_un addr;
+
+    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        perror("socket error");
+        return;
+    }
+
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, "/tmp/tde_shard_socket");
+
+    if (connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) == -1) {
+        perror("connect error");
+        close(sockfd);
+        return;
+    }
+
+    write(sockfd, path, strlen(path));
+    close(sockfd);
+}
+
+
 static int
 shard_init_internal_dir_loc(xlator_t *this, shard_local_t *local,
                             shard_internal_dir_type_t type)
@@ -646,10 +671,14 @@ shard_init_internal_dir_loc(xlator_t *this, shard_local_t *local,
                "Inode path failed on %s", bname);
         goto out;
     }
+    
+    notify_tde_of_shard(internal_dir_loc->path);
+    
 
     internal_dir_loc->name = strrchr(internal_dir_loc->path, '/');
     if (internal_dir_loc->name)
         internal_dir_loc->name++;
+
 
     ret = 0;
 out:
