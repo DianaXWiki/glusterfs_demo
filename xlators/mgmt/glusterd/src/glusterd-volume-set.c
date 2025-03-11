@@ -2588,14 +2588,33 @@ struct volopt_map_entry glusterd_volopt_map[] = {
      .flags = VOLOPT_FLAG_CLIENT_OPT
     },
      {
-        .key = "features.tde",
+        .key = "features.tde-enabled",
         .voltype = "features/tde",
         .value = "off",
         .option = "!tde",
         .op_version = GD_OP_VERSION_3_7_0,
         .description = "Enable/disable Transparent Data Encryption (TDE) on the volume.",
         .flags = VOLOPT_FLAG_CLIENT_OPT | VOLOPT_FLAG_XLATOR_OPT,
-    },   
+    },
+    {
+        .key = "features.encrypt-write",
+        .voltype = "features/tde",
+        .value = "off",
+        .option = "encrypt-write",
+        .op_version = GD_OP_VERSION_3_7_0,
+        .description = "Enable/disable encryption of data written to the volume.",
+        .flags = VOLOPT_FLAG_CLIENT_OPT,
+    },
+    {
+        .key = "features.decrypt-read",
+        .voltype = "features/tde",
+        .value = "off",
+        .option = "decrypt-read",
+        .op_version = GD_OP_VERSION_3_7_0,
+        .description = "Enable/disable decryption of data read from the volume.",
+        .flags = VOLOPT_FLAG_CLIENT_OPT,
+
+    },  
     {
         .key = "features.scrub-throttle",
         .voltype = "features/bit-rot",

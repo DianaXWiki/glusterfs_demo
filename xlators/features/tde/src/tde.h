@@ -18,6 +18,15 @@
 #include <glusterfs/xlator.h>
 #include <glusterfs/defaults.h>
 
+typedef struct tde_private_t {
+    int tde_enabled; // Flag for enabling the TDE feature
+    int encrypt_write;   // Flag for enabling encryption during writes
+    int decrypt_read;    // Flag for enabling decryption during reads
+    AES_KEY enc_key;     // AES encryption key
+    AES_KEY dec_key;     // AES decryption key
+} tde_private_t;
+
+
 #endif /* __TDE_H__ */
 
 
