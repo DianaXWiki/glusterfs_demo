@@ -5,7 +5,9 @@
 #include <glusterfs/logging.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
-
+#include "tde.h"
+#include "tde-messages.h"
+#include "tde-mem-types.h"
 // A structure to hold the private data for TDE
 
 // The encryption and decryption routines using AES (as an example)
