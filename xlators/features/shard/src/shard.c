@@ -7156,6 +7156,7 @@ shard_common_inode_write_begin(call_frame_t *frame, xlator_t *this,
     int i = 0;
     uint64_t block_size = 0;
     shard_local_t *local = NULL;
+    xlator_t *tde_xlator = this->next;
 
     if (frame->root->pid == GF_CLIENT_PID_GSYNCD) {
         shard_common_unwind_based_on_fop(frame, this, fop, fd, vector, count,
@@ -7216,6 +7217,14 @@ shard_common_inode_write_begin(call_frame_t *frame, xlator_t *this,
 
     local->loc.inode = inode_ref(fd->inode);
     gf_uuid_copy(local->loc.gfid, fd->inode->gfid);
+
+    if (tde_xlator && tde_xlator->fops->writev) {
+        gf_msg(this->name, GF_LOG_DEBUG, 0, 0,
+               "Shard: Passing shard data to TDE before writing.");
+
+        STACK_WIND(frame, NULL, tde_xlator, tde_xlator->fops->writev,
+                   fd, vector, count, offset, flags, iobref, xdata);
+    }
 
     shard_refresh_base_file(frame, this, NULL, fd,
                             shard_common_inode_write_post_lookup_handler);

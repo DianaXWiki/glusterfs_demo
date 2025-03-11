@@ -4,20 +4,8 @@ import shard_service_pb2
 import shard_service_pb2_grpc
 
 class ShardServiceServicer(shard_service_pb2_grpc.ShardServiceServicer):
-    def SendShard(self, request, context):
-        shard_data = request.data
-        offset = request.offset
-
-        print(f"Received shard at offset {offset}, size: {len(shard_data)} bytes")
-
-        # Save shard data to a file (optional)
-        with open(f"shard_{offset}.bin", "wb") as f:
-            f.write(shard_data)
-
-        return shard_service_pb2.ShardResponse(status="OK")
-
-    def SendShardInfo(self, request, context):  # This method was missing
-        print(f"Received shard info: Path={request.shard_path}, Index={request.shard_index}, Size={request.shard_size}")
+    def SendShardInfo(self, request, context):
+        print(f"Received Shard: Path={request.shard_path}, Index={request.shard_index}, Size={request.shard_size}")
         return shard_service_pb2.ShardResponse(status="Received")
 
 def serve():
