@@ -9,8 +9,8 @@
  */
 
 
-#ifndef __ TDE_H__
-#define __ TDE_H__
+#ifndef __TDE_H__
+#define __TDE_H__
 
 #include "tde-mem-types.h"
 #include "tde-messages.h"
