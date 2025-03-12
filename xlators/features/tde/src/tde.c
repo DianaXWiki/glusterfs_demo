@@ -187,7 +187,7 @@ struct xlator_cbks cbks = {
 
 struct volume_options options[] = {
     {
-        .key = {"tde"},
+        .key = {"features.tde"},
         .type = GF_OPTION_TYPE_BOOL,
         .default_value = "off",
         .description = "enable/disable tde",
