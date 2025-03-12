@@ -107,7 +107,7 @@ int32_t init(xlator_t *this) {
     if (!priv)
         goto out;
 
-        GF_OPTION_INIT("tde", priv->tde_enabled, bool, out);
+        GF_OPTION_INIT("features.tde", priv->tde_enabled, bool, out);
         GF_OPTION_INIT("tde-encrypt-write", priv->encrypt_write, bool, out);
         GF_OPTION_INIT("tde-decrypt-read", priv->decrypt_read, bool, out);
 
@@ -187,15 +187,15 @@ struct xlator_cbks cbks = {
 
 struct volume_options options[] = {
     {
-        .key = {"features.tde"},
+        .key = {"tde"},
         .type = GF_OPTION_TYPE_BOOL,
         .default_value = "off",
         .description = "enable/disable tde",
-        .op_version = {GD_OP_VERSION_6_0},
+        .op_version = GD_OP_VERSION_6_0,
         .flags = OPT_FLAG_SETTABLE,
     },
-    {.key = {"tde-encrypt-write"}, .type = GF_OPTION_TYPE_BOOL,  .tags = {"tde"},},
-    {.key = {"tde-decrypt-read"}, .type = GF_OPTION_TYPE_BOOL,  .tags = {"tde"},},
+    {.key = {"tde-encrypt-write"}, .type = GF_OPTION_TYPE_BOOL, .op_version = GD_OP_VERSION_6_0,  .tags = {"tde"},  .flags = OPT_FLAG_SETTABLE},
+    {.key = {"tde-decrypt-read"}, .type = GF_OPTION_TYPE_BOOL, .op_version = GD_OP_VERSION_6_0,  .tags = {"tde"},  .flags = OPT_FLAG_SETTABLE},
     {.key = {NULL}},
 };
 
