@@ -2591,6 +2591,7 @@ struct volopt_map_entry glusterd_volopt_map[] = {
         .key = "features.tde",
         .voltype = "features/tde",
         .value = "off",
+        .option = "!tde",
         .op_version = GD_OP_VERSION_6_0,
         .description = "Enable/disable Transparent Data Encryption (TDE) on the volume.",
         .flags = VOLOPT_FLAG_CLIENT_OPT,
@@ -2598,7 +2599,6 @@ struct volopt_map_entry glusterd_volopt_map[] = {
     {
         .key = "features.tde-encrypt-write",
         .voltype = "features/tde",
-        .value = "off",
         .op_version = GD_OP_VERSION_6_0,
         .description = "Enable/disable encryption of data written to the volume.",
         .flags = VOLOPT_FLAG_CLIENT_OPT,
@@ -2606,7 +2606,6 @@ struct volopt_map_entry glusterd_volopt_map[] = {
     {
         .key = "features.tde-decrypt-read",
         .voltype = "features/tde",
-        .value = "off",
         .op_version = GD_OP_VERSION_6_0,
         .description = "Enable/disable decryption of data read from the volume.",
         .flags = VOLOPT_FLAG_CLIENT_OPT,
